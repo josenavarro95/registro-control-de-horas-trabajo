@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f2a4a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mis Horas">
+  <title>Control de Horas</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Control de Horas</h1>
+    <button id="btnInstall" class="chip" hidden>Instalar app</button>
+  </header>
+
+  <main>
+    <!-- ============ MARCAR ============ -->
+    <section id="tab-marcar" class="tab active">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="date" id="today">—</div>
+
+      <div class="status card" id="statusCard">
+        <div class="status-label" id="statusLabel">Fuera de turno</div>
+        <div class="status-timer" id="statusTimer"></div>
+        <div class="status-sub" id="statusSub"></div>
+      </div>
+
+      <button id="btnMark" class="btn-mark in">MARCAR ENTRADA</button>
+
+      <div class="card mealbox" id="mealBox" hidden>
+        <span class="sub" id="mealFor">Turno actual</span>
+        <select id="mealSel">
+          <option value="almuerzo">Almuerzo</option>
+          <option value="cena">Cena</option>
+          <option value="ninguna">Sin comida</option>
+        </select>
+        <label class="check"><input type="checkbox" id="mealComedor"> Consumí en comedor</label>
+      </div>
+
+      <div class="row2">
+        <button id="btnScan" class="btn secondary">📷 Marcar con tarjeta</button>
+        <button id="btnNfc" class="btn secondary" hidden>📶 Marcar con NFC</button>
+      </div>
+
+      <div class="card">
+        <h3>Esta semana</h3>
+        <div class="kpis" id="kpisWeekMini"></div>
+      </div>
+
+      <div class="card">
+        <h3>Últimas marcaciones</h3>
+        <ul class="list" id="lastMarks"></ul>
+      </div>
+    </section>
+
+    <!-- ============ SEMANA ============ -->
+    <section id="tab-semana" class="tab">
+      <div class="weeknav">
+        <button class="btn icon" id="prevWeek" aria-label="Semana anterior">‹</button>
+        <div class="weeklabel" id="weekLabel">—</div>
+        <button class="btn icon" id="nextWeek" aria-label="Semana siguiente">›</button>
+      </div>
+      <button class="btn link" id="thisWeek">Ir a la semana actual</button>
+
+      <div class="kpis" id="kpisWeek"></div>
+
+      <div class="tablewrap">
+        <table class="tbl" id="weekTable">
+          <thead>
+            <tr>
+              <th>Día</th><th>Trab.</th><th>Ord.</th><th>Noct.<br>25%</th><th>Supl.<br>50%</th><th>Extra<br>100%</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+      <p class="hint" id="moneyHint"></p>
+
+      <div class="card">
+        <h3>Turnos de la semana</h3>
+        <ul class="list" id="weekShifts"></ul>
+        <button class="btn secondary full" id="btnAddManual">＋ Agregar turno manual</button>
+      </div>
+
+      <div class="row2">
+        <button class="btn secondary" id="btnCsvWeek">Exportar semana (CSV)</button>
+        <button class="btn danger-outline" id="btnDelWeek">Borrar semana</button>
+      </div>
+    </section>
+
+    <!-- ============ ROL ============ -->
+    <section id="tab-rol" class="tab">
+      <div class="weeknav">
+        <button class="btn icon" id="prevPeriod" aria-label="Período anterior">‹</button>
+        <div class="weeklabel" id="rolLabel">—</div>
+        <button class="btn icon" id="nextPeriod" aria-label="Período siguiente">›</button>
+      </div>
+      <button class="btn link" id="thisPeriod">Ir al período actual</button>
+      <div class="grid2">
+        <label>Días pagados (de 30)
+          <input id="rolPaidDays" type="number" min="0" max="30" step="1">
+        </label>
+        <label>Anticipo quincena (USD)
+          <input id="rolAnticipo" type="number" min="0" step="0.01">
+        </label>
+      </div>
+      <div id="rolBody"></div>
+      <p class="hint">Estimación según tus marcaciones. Alimentación = turnos con almuerzo/cena × bono; el comedor se descuenta solo en los turnos marcados con "Consumí en comedor". IESS sobre sueldo + recargos + horas extras (sin alimentación).</p>
+    </section>
+
+    <!-- ============ AJUSTES ============ -->
+    <section id="tab-ajustes" class="tab">
+      <div class="card">
+        <h3>Tarjeta</h3>
+        <p class="hint">Vincula el código de barras de tu credencial. Al escanearla, la app marca entrada o salida según corresponda.</p>
+        <label>Código vinculado
+          <input id="cfgCard" type="text" placeholder="Sin tarjeta vinculada" autocomplete="off">
+        </label>
+        <div class="row2">
+          <button class="btn secondary" id="btnLinkCard">📷 Escanear para vincular</button>
+          <button class="btn secondary" id="btnLinkNfc" hidden>📶 Vincular NFC</button>
+        </div>
+        <label class="check"><input type="checkbox" id="cfgAnyCard"> Aceptar cualquier código (no validar tarjeta)</label>
+      </div>
+
+      <div class="card">
+        <h3>Jornada</h3>
+        <div class="grid2">
+          <label>Horas ordinarias por turno
+            <input id="cfgDaily" type="number" min="1" max="12" step="0.5">
+          </label>
+          <label>Inicio nocturno
+            <input id="cfgNightStart" type="time">
+          </label>
+          <label>Fin nocturno
+            <input id="cfgNightEnd" type="time">
+          </label>
+          <label>Supl. al 100% desde
+            <input id="cfgSup100Start" type="time">
+          </label>
+        </div>
+        <p class="hint">Por defecto (Código del Trabajo de Ecuador): jornada de 8 h; nocturna de 19:00 a 06:00 con recargo del 25%; horas suplementarias al 50% hasta las 24:00 y al 100% entre las 00:00 y las 06:00; todo lo trabajado en días de descanso o feriados, al 100%.</p>
+      </div>
+
+      <div class="card">
+        <h3>Almuerzo / descanso no pagado</h3>
+        <div class="grid2">
+          <label>Minutos a descontar
+            <input id="cfgBreak" type="number" min="0" max="180" step="5">
+          </label>
+          <label>Después de (horas de trabajo)
+            <input id="cfgBreakAfter" type="number" min="0" max="12" step="0.5">
+          </label>
+          <label>Solo si el turno dura más de (h)
+            <input id="cfgBreakMinDur" type="number" min="0" max="24" step="0.5">
+          </label>
+          <label>Solo si la entrada es entre
+            <span class="inline"><input id="cfgBreakFrom" type="time"> y <input id="cfgBreakTo" type="time"></span>
+          </label>
+        </div>
+        <p class="hint">Así 08:00–17:00 cuenta 8 h (descuenta 1 h de almuerzo) y 18:00–02:00 cuenta 8 h completas. Puedes cambiar el descuento de cada turno al editarlo.</p>
+      </div>
+
+      <div class="card">
+        <h3>Días de descanso</h3>
+        <div class="days" id="cfgRestDays"></div>
+        <p class="hint">Se toma el día en que <b>empieza</b> el turno.</p>
+        <h3>Feriados</h3>
+        <div class="inline">
+          <input id="holidayInput" type="date">
+          <button class="btn secondary" id="btnAddHoliday">Agregar</button>
+        </div>
+        <ul class="list compact" id="holidayList"></ul>
+      </div>
+
+      <div class="card">
+        <h3>Valor estimado (opcional)</h3>
+        <div class="grid2">
+          <label>Sueldo mensual nominal (USD)
+            <input id="cfgSalary" type="number" min="0" step="0.01" placeholder="Ej. 900">
+          </label>
+          <label>Valor hora (opcional)
+            <input id="cfgHourRate" type="number" min="0" step="0.0001">
+          </label>
+        </div>
+        <p class="hint">Valor hora = sueldo ÷ 240, salvo que pongas uno manual. Recargo nocturno = h × VH × 0,25; suplementarias = h × VH × 1,5; extraordinarias = h × VH × 2.</p>
+      </div>
+
+      <div class="card">
+        <h3>Rol de pagos</h3>
+        <div class="grid2">
+          <label>Día de inicio del período
+            <input id="cfg_periodStartDay" type="number" min="1" max="28" step="1">
+          </label>
+          <label>Anticipo quincena (% sueldo)
+            <input id="cfg_anticipoPct" type="number" min="0" max="100" step="0.5">
+          </label>
+          <label>Aporte personal IESS (%)
+            <input id="cfg_iessPct" type="number" min="0" max="30" step="0.01">
+          </label>
+        </div>
+        <h3>Comidas</h3>
+        <label>Es almuerzo si la entrada es entre
+          <span class="inline"><input id="cfg_mealFrom" type="time"> y <input id="cfg_mealTo" type="time"></span>
+        </label>
+        <p class="hint">Fuera de ese rango, el turno cuenta como cena. Puedes cambiarlo en cada turno.</p>
+        <div class="grid2">
+          <label>Bono alimentación almuerzo (USD)
+            <input id="cfg_bonoAlmuerzo" type="number" min="0" step="0.01">
+          </label>
+          <label>Bono alimentación cena (USD)
+            <input id="cfg_bonoCena" type="number" min="0" step="0.01">
+          </label>
+          <label>Descuento comedor almuerzo (USD)
+            <input id="cfg_comedorAlmuerzo" type="number" min="0" step="0.001">
+          </label>
+          <label>Descuento comedor cena (USD)
+            <input id="cfg_comedorCena" type="number" min="0" step="0.001">
+          </label>
+        </div>
+        <label class="check"><input type="checkbox" id="cfg_comedorDefault"> Marcar "Consumí en comedor" por defecto al entrar</label>
+      </div>
+
+      <div class="card">
+        <h3>Mis datos</h3>
+        <p class="hint" id="storageInfo">Todo se guarda solo en este teléfono.</p>
+        <div class="row2">
+          <button class="btn secondary" id="btnBackup">Respaldar (JSON)</button>
+          <button class="btn secondary" id="btnRestore">Restaurar</button>
+        </div>
+        <div class="row2">
+          <button class="btn secondary" id="btnCsvAll">Exportar todo (CSV)</button>
+          <button class="btn danger" id="btnWipe">Borrar todos los datos</button>
+        </div>
+        <input type="file" id="fileRestore" accept="application/json" hidden>
+      </div>
+      <p class="hint center">Control de Horas · v1.1</p>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button data-tab="marcar" class="active">⏱<span>Marcar</span></button>
+    <button data-tab="semana">📅<span>Semana</span></button>
+    <button data-tab="rol">💵<span>Rol</span></button>
+    <button data-tab="ajustes">⚙️<span>Ajustes</span></button>
+  </nav>
+
+  <!-- Escáner -->
+  <dialog id="dlgScan">
+    <div class="dlg-head"><b id="scanTitle">Escanea tu tarjeta</b><button class="btn icon" id="scanClose">✕</button></div>
+    <div class="scanbox">
+      <video id="scanVideo" playsinline muted></video>
+      <div class="scanline"></div>
+    </div>
+    <p class="hint center" id="scanMsg">Apunta la cámara al código de barras.</p>
+  </dialog>
+
+  <!-- Editar turno -->
+  <dialog id="dlgEdit">
+    <form method="dialog" id="formEdit">
+      <div class="dlg-head"><b id="editTitle">Editar turno</b></div>
+      <label>Entrada <input type="datetime-local" id="edStart" required></label>
+      <label>Salida <input type="datetime-local" id="edEnd"></label>
+      <label>Descanso no pagado (min) <input type="number" id="edBreak" min="0" max="300" step="5"></label>
+      <label>Comida
+        <select id="edMeal">
+          <option value="auto">Automático (según hora de entrada)</option>
+          <option value="almuerzo">Almuerzo</option>
+          <option value="cena">Cena</option>
+          <option value="ninguna">Sin comida</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="edComedor"> Consumí en comedor (se descuenta)</label>
+      <label>Nota <input type="text" id="edNote" maxlength="80" placeholder="Opcional"></label>
+      <div class="row2">
+        <button type="button" class="btn danger-outline" id="edDelete">Eliminar</button>
+        <button type="button" class="btn secondary" id="edCancel">Cancelar</button>
+        <button type="submit" class="btn primary" id="edSave">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="vendor/zxing.min.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
